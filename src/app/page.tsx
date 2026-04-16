@@ -325,7 +325,7 @@ export default function Home() {
 
           {/* Stats */}
           {layout && (
-            <section className="mt-auto border-t border-[#1c2538] pt-4">
+            <section className="border-t border-[#1c2538] pt-4 mt-4">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-[#4e5d73] mb-3">
                 Stats
               </h2>
