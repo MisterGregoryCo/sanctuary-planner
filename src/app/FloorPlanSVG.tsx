@@ -119,8 +119,7 @@ export default function FloorPlanSVG({ roomW, roomD, layout, door }: Props) {
     <svg
       viewBox={`0 0 ${svgW} ${svgH}`}
       width="100%"
-      style={{ maxWidth: svgW }}
-      className="mx-auto"
+      className="mx-auto max-w-[660px]"
     >
       <defs>
         {/* Grid pattern */}
