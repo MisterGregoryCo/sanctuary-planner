@@ -103,9 +103,9 @@ export default function Home() {
         <p className="text-sm text-[#4e5d73] mt-0.5">Church floor plan layout tool</p>
       </header>
 
-      <div className="flex flex-1 flex-col lg:flex-row">
+      <div className="flex flex-1 flex-col lg:flex-row lg:h-[calc(100vh-73px)]">
         {/* ─── Control Panel ─── */}
-        <aside className="w-full lg:w-[340px] bg-[#0d1118] border-r border-[#1c2538] p-5 flex flex-col gap-5 shrink-0">
+        <aside className="w-full lg:w-[340px] bg-[#0d1118] border-r border-[#1c2538] p-5 flex flex-col gap-5 shrink-0 lg:overflow-y-auto">
 
           {/* Room Dimensions */}
           <section>
@@ -339,7 +339,7 @@ export default function Home() {
         </aside>
 
         {/* ─── Floor Plan ─── */}
-        <div className="flex-1 flex flex-col items-center p-6 overflow-auto">
+        <div className="flex-1 flex flex-col items-center p-6 lg:overflow-auto">
           {layout ? (
             <>
               <FloorPlanSVG roomW={roomW} roomD={roomD} layout={layout} door={door} />
