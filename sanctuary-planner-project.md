@@ -8,11 +8,17 @@
 
 An interactive floor plan and seating capacity tool for churches, venues, and event spaces. Enter any room's dimensions, choose a stage layout, and instantly see a rendered SVG floor plan with chair placement, total seat count, and space utilization.
 
-Built originally for **Collective Church** (a church plant in Murfreesboro, TN evaluating a former indoor batting cage facility with a 56'11" × 54'4" sanctuary space), then generalized to work for any room.
+Built originally for **Collective Church** (a church plant in Murfreesboro, TN evaluating a former indoor batting cage facility with a 56'11" × 54'4" sanctuary space), then generalized to work for any room. As of July 2026 it is a **fully standalone project** — no longer tied to the Collective Church Vercel project.
 
-**Live production URL:** https://collective-church-mistergregorycos-projects.vercel.app
+**Live production URL:** https://sanctuary-planner.vercel.app
 
-**Vercel project:** `collective-church` (prj_WuYO0dhqsb2NS0mWfPK6spulQdGs) on team `mistergregorycos-projects` (team_LWFY4rTHuGyC6ypVxXD4o7KV)
+**Vercel project:** `sanctuary-planner` (prj_C9QRfk0Fbm9NC4Y8BgGWYnKMAjdS) on team `mistergregorycos-projects` (team_LWFY4rTHuGyC6ypVxXD4o7KV)
+
+**GitHub repo:** https://github.com/MisterGregoryCo/sanctuary-planner (connected to Vercel — pushes to `main` auto-deploy to production)
+
+**Local working copy:** `~/Desktop/Mallard Studios - Projects/Sanctuary Planner`
+
+> Historical: the first deployment lived inside the `collective-church` Vercel project (https://collective-church-mistergregorycos-projects.vercel.app, prj_WuYO0dhqsb2NS0mWfPK6spulQdGs). That deployment is behind Vercel deployment-protection login and is superseded by the standalone URL above. The GitHub repo previously held an abandoned TypeScript/Tailwind scaffold with some mobile-layout work — preserved in git history at commit `0e7bfac` if worth porting.
 
 ---
 
@@ -22,9 +28,9 @@ Built originally for **Collective Church** (a church plant in Murfreesboro, TN e
 - **React 18** with hooks (useState, useMemo)
 - **Pure inline styles** — no Tailwind, no CSS modules, no component libraries
 - **Hand-rolled SVG rendering** — no charting or canvas libraries
-- Deployed via Vercel MCP direct file deploy (no git repo currently connected)
+- Deployed via GitHub → Vercel auto-deploy (push to `main`), or `vercel deploy --prod` from the project folder
 
-### File Structure (deployed app)
+### File Structure
 
 ```
 sanctuary-planner/
@@ -137,8 +143,9 @@ Typography: Georgia/serif for the H1 and big stat numbers; system sans-serif for
 
 1. Started as a Claude.ai artifact for one specific building walkthrough (Collective Church, 56'11" × 54'4" space, currently an indoor batting cage facility — photos showed metal building, concrete slab, roll-up door, red steel columns, turf to be removed)
 2. First version: center octagon only. Then expanded to 3 layouts, then generalized to accept any room dimensions
-3. Deployed to Vercel via MCP `deploy_to_vercel` into the existing `collective-church` project (creating a new project hit a 403 permission error on this team — deploy into existing projects instead)
+3. Deployed to Vercel via MCP `deploy_to_vercel` into the existing `collective-church` project (creating a new project via MCP hit a 403 permission error on this team — the Vercel CLI does NOT have this problem)
 4. Half-circle layout added in v1.1.0
+5. July 2026: extracted into a standalone project. Source pulled from the collective-church production deployment via the Vercel API, committed to the `sanctuary-planner` GitHub repo (superseding the old TS scaffold there), deployed to its own `sanctuary-planner` Vercel project with GitHub auto-deploy connected. Fixed literal `·` escape sequences that rendered as raw text in the subtitle/footer
 
 ### Known constraints from the actual building (for Collective Church use)
 - Roll-up door on one wall (currently modeled as "Bottom")
@@ -166,9 +173,10 @@ Feature candidates, in rough priority order if validated:
 ### Engineering notes for whoever picks this up
 - The deployed page.js is dense single-file code. First refactor: split into `lib/seating.js` (pure compute functions — they're already pure and testable), `components/` for the SVG renderers and controls
 - Seating functions are deterministic — snapshot tests would be cheap insurance
-- If adding TypeScript, a parallel TS version already existed in an earlier local build (Next.js scaffold with src dir, TS, Tailwind) — but the deployed JS version is the source of truth
-- Deploy method: Vercel MCP `deploy_to_vercel` with full file tree, `target: production`, project name `collective-church`, teamId `team_LWFY4rTHuGyC6ypVxXD4o7KV`. Or connect a GitHub repo (`MisterGregoryCo` account) for auto-deploys
+- If adding TypeScript, the old TS/Tailwind scaffold (with sticky-sidebar and mobile-layout work) lives in git history at `0e7bfac` — but the JS version is the source of truth
+- Deploy method: push to `main` on the GitHub repo (auto-deploys), or `vercel deploy --prod` from the project folder
 - Keep the artifact version (claude.ai) and deployed version in sync manually, or retire the artifact now that the URL exists
+- Supabase: intentionally NOT set up yet — nothing in the app needs persistence. Create a dedicated Supabase project only when save/load (roadmap #5) is validated and built
 
 ---
 
