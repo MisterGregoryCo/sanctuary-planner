@@ -46,13 +46,15 @@ Everything lives in `page.js`. It's intentionally a single file for easy deploys
 
 ---
 
-## Features (as deployed, v1.1.0)
+## Features (as deployed, v1.2.0)
 
 ### Room Configuration
-- **Width + Depth inputs**: separate feet and inches fields
-  - CRITICAL UX detail: inputs use local string state (`ftText`/`inText`) with focus tracking so users can fully clear a field while typing. Validation happens on blur, not per keystroke. Values clamp: feet 5–200, inches 0–11. Don't regress this — it was a reported bug.
+- **Width + Depth + Ceiling inputs**: separate feet and inches fields
+  - CRITICAL UX detail: inputs use local string state (`ftText`/`inText`) with focus tracking so users can fully clear a field while typing. Validation happens on blur, not per keystroke. Values clamp: feet 5–200 (ceiling 6–60), inches 0–11. Don't regress this — it was a reported bug.
+  - Ceiling height (added v1.2.0) is informational — shown in the readout row and on the floor plan's top-right corner label. It does not affect seating math (yet — it matters for future AV overlays: projector throw, speaker rigging)
+- **Clearance sliders** (added v1.2.0): Wall Buffer (0–8', step 0.5, default 3') and Stage Gap (0.5–8', step 0.5, default 2.5') — these feed directly into all four seating algorithms and the usable-sq-ft readout. The footer assumptions line updates live to match
 - **Door/Entry location toggle**: Bottom / Top / Left / Right — renders a gold indicator line on the chosen wall
-- **Live sq ft readout**: total and usable (total minus 3' wall buffer on all sides)
+- **Live sq ft readout**: total, usable (total minus wall buffer on all sides), and ceiling height
 
 ### Four Stage Layouts (tab switcher)
 1. **Center Octagon** (⬡) — octagonal stage in room center, curved seating rows radiating outward in sections. Controls: stage size slider (8–24', represents flat-to-flat width), aisle count toggle (4/6/8 radial aisles)
@@ -82,29 +84,29 @@ All units in feet. Constants at top of page.js:
 ```
 ROW_SPACING  = 3      // 36" row-to-row
 CHAIR_WIDTH  = 1.83   // ~22" per chair
-WALL_BUFFER  = 3      // no chairs within 3' of any wall
-STAGE_BUFFER = 2.5    // gap between stage edge and first row
 PAD          = 48     // SVG pixel padding around the room
 ```
+
+Wall buffer and stage gap were constants (`WALL_BUFFER = 3`, `STAGE_BUFFER = 2.5`) through v1.1.0; since v1.2.0 they are user-adjustable state (`wallBuf`, `stageBuf`) passed into every compute function as `wb`/`sb` params (defaults 3 and 2.5 preserve old behavior — verified: same seat counts at defaults).
 
 Aisles are 5' wide everywhere (represented as ±2.5' exclusion zones).
 Every chair is assumed to consume ~5 sq ft including personal space.
 
-### computeCenter(rw, rh, stageR, numAisles)
-Radial sections around center point. For each section and each row radius `r = stageR + 2.5 + rowIndex * 3`:
+### computeCenter(rw, rh, stageR, numAisles, wb, sb)
+Radial sections around center point. For each section and each row radius `r = stageR + sb + rowIndex * 3`:
 - Aisle half-angle: `asin(min(2.5 / r, 0.99))`
 - Available arc angle = sectionAngle − 2 × aisleHalfAngle
 - Chairs = floor(arcLength / CHAIR_WIDTH), evenly distributed
 - Clip each chair to `inRoom()` (inside wall buffer)
 
-### computeFront(rw, rh, stageW, stageD)
-Straight rows from `stageD + 3` down to `rh - WALL_BUFFER`, stepping 3'.
+### computeFront(rw, rh, stageW, stageD, wb, sb)
+Straight rows from `stageD + sb` down to `rh - wb`, stepping 3'. (Pre-v1.2.0 the seat start was hardcoded `stageD + 3`, inconsistent with the 2.5' gap elsewhere; now it honors the stage-gap setting uniformly — at the 2.5' default this happens to produce the same row count for typical rooms.)
 Seating area split into 3 sections by aisles centered at 33% and 66% of seating width. Chairs centered within each section per row.
 
-### computeCorner(rw, rh, size)
+### computeCorner(rw, rh, size, wb, sb)
 Quarter-circle arcs from origin at bottom-left corner (0, rh), angles −90° to 0°. Stage reach = size × 1.1. Two aisles at 33%/66% of arc angle (excluded via angular half-width `2.5 / r`).
 
-### computeHalf(rw, rh, stageR)
+### computeHalf(rw, rh, stageR, wb, sb)
 Half-circle arcs from center-top point (rw/2, 0), angles ~0.06 to π−0.06 rad (slight inset from the wall). Same aisle exclusion pattern as corner. Chairs face the stage center point.
 
 ### Coordinate System
@@ -146,6 +148,7 @@ Typography: Georgia/serif for the H1 and big stat numbers; system sans-serif for
 3. Deployed to Vercel via MCP `deploy_to_vercel` into the existing `collective-church` project (creating a new project via MCP hit a 403 permission error on this team — the Vercel CLI does NOT have this problem)
 4. Half-circle layout added in v1.1.0
 5. July 2026: extracted into a standalone project. Source pulled from the collective-church production deployment via the Vercel API, committed to the `sanctuary-planner` GitHub repo (superseding the old TS scaffold there), deployed to its own `sanctuary-planner` Vercel project with GitHub auto-deploy connected. Fixed literal `·` escape sequences that rendered as raw text in the subtitle/footer
+6. v1.2.0 (July 2026): wall buffer and stage gap became adjustable sliders (0–8' / 0.5–8'); added ceiling height input (informational — readout row + floor plan corner label)
 
 ### Known constraints from the actual building (for Collective Church use)
 - Roll-up door on one wall (currently modeled as "Bottom")
@@ -187,5 +190,6 @@ Feature candidates, in rough priority order if validated:
 - No obstructions modeled (columns, booths)
 - Chair count is an estimate for planning conversations — not a code-compliant occupancy calculation. Real occupancy loads need IBC/local fire marshal review
 - 5 sq ft/person is a planning heuristic; actual assembly occupancy factors differ (IBC uses 7 net for unconcentrated chairs, 15 net tables/chairs, etc.)
+- Ceiling height is informational only — no sightline/rigging/throw math uses it yet
 - Aisle positions are fixed at 33%/66% — not user-adjustable
 - No persistence — refresh resets everything
