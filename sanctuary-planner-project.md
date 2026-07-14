@@ -1,0 +1,183 @@
+# Sanctuary Planner — Project Documentation
+
+**Handoff doc for Claude Code sessions.** Everything you need to understand, run, and extend this project.
+
+---
+
+## What This Is
+
+An interactive floor plan and seating capacity tool for churches, venues, and event spaces. Enter any room's dimensions, choose a stage layout, and instantly see a rendered SVG floor plan with chair placement, total seat count, and space utilization.
+
+Built originally for **Collective Church** (a church plant in Murfreesboro, TN evaluating a former indoor batting cage facility with a 56'11" × 54'4" sanctuary space), then generalized to work for any room.
+
+**Live production URL:** https://collective-church-mistergregorycos-projects.vercel.app
+
+**Vercel project:** `collective-church` (prj_WuYO0dhqsb2NS0mWfPK6spulQdGs) on team `mistergregorycos-projects` (team_LWFY4rTHuGyC6ypVxXD4o7KV)
+
+---
+
+## Current Tech Stack
+
+- **Next.js 14** (App Router, JavaScript — not TypeScript in the deployed version)
+- **React 18** with hooks (useState, useMemo)
+- **Pure inline styles** — no Tailwind, no CSS modules, no component libraries
+- **Hand-rolled SVG rendering** — no charting or canvas libraries
+- Deployed via Vercel MCP direct file deploy (no git repo currently connected)
+
+### File Structure (deployed app)
+
+```
+sanctuary-planner/
+├── package.json           # next ^14.2.0, react ^18.2.0
+├── next.config.js         # default config
+├── src/app/
+│   ├── layout.js          # metadata + root layout
+│   ├── globals.css        # dark theme base, range slider styling, number input cleanup
+│   └── page.js            # THE ENTIRE APP — single client component (~200 lines dense)
+```
+
+Everything lives in `page.js`. It's intentionally a single file for easy deploys, but should be split into components if the project grows.
+
+---
+
+## Features (as deployed, v1.1.0)
+
+### Room Configuration
+- **Width + Depth inputs**: separate feet and inches fields
+  - CRITICAL UX detail: inputs use local string state (`ftText`/`inText`) with focus tracking so users can fully clear a field while typing. Validation happens on blur, not per keystroke. Values clamp: feet 5–200, inches 0–11. Don't regress this — it was a reported bug.
+- **Door/Entry location toggle**: Bottom / Top / Left / Right — renders a gold indicator line on the chosen wall
+- **Live sq ft readout**: total and usable (total minus 3' wall buffer on all sides)
+
+### Four Stage Layouts (tab switcher)
+1. **Center Octagon** (⬡) — octagonal stage in room center, curved seating rows radiating outward in sections. Controls: stage size slider (8–24', represents flat-to-flat width), aisle count toggle (4/6/8 radial aisles)
+2. **Front Stage** (▬) — rectangular stage centered against the top wall. Controls: stage width (12' to room width minus 4'), stage depth (6–50'). Three straight seating sections split by two aisles at 33%/66% of seating width. Shows WING labels beside stage when side space > 4'
+3. **Corner Stage** (◣) — triangular wedge in bottom-left corner with dashed curved front edge. Seating in quarter-circle arcs fanning from the corner, two radial aisles at 33%/66% of the arc. Control: stage size (8–24')
+4. **Half Circle** (◖) — semicircular stage, flat edge against top wall, curve facing the room. Seating in concentric half-arcs with two radial aisles. Control: stage radius (5–20', so 10–40' across)
+
+### Stats Bar (live-updating)
+- **Seats** — total chairs placed
+- **Sq Ft Seated** — seats × 5
+- **Utilization %** — (seats × 5) / total room sq ft
+
+### Rendering Details
+- SVG with a subtle grid pattern (1 grid square = 1 foot)
+- Room outline with dimension labels formatted as `56'-11"`
+- Chairs: 6×6px rounded green rects, rotated to face the stage
+- Stage: gold (#c9935a) with SVG glow filter and gradient fill
+- Row guide circles/arcs drawn faintly behind chairs
+- Dynamic scale: `Math.min(12, (660 - PAD*2) / max(roomWidth, 20))` so any room fits ~660px width
+
+---
+
+## Layout Math (the core logic)
+
+All units in feet. Constants at top of page.js:
+
+```
+ROW_SPACING  = 3      // 36" row-to-row
+CHAIR_WIDTH  = 1.83   // ~22" per chair
+WALL_BUFFER  = 3      // no chairs within 3' of any wall
+STAGE_BUFFER = 2.5    // gap between stage edge and first row
+PAD          = 48     // SVG pixel padding around the room
+```
+
+Aisles are 5' wide everywhere (represented as ±2.5' exclusion zones).
+Every chair is assumed to consume ~5 sq ft including personal space.
+
+### computeCenter(rw, rh, stageR, numAisles)
+Radial sections around center point. For each section and each row radius `r = stageR + 2.5 + rowIndex * 3`:
+- Aisle half-angle: `asin(min(2.5 / r, 0.99))`
+- Available arc angle = sectionAngle − 2 × aisleHalfAngle
+- Chairs = floor(arcLength / CHAIR_WIDTH), evenly distributed
+- Clip each chair to `inRoom()` (inside wall buffer)
+
+### computeFront(rw, rh, stageW, stageD)
+Straight rows from `stageD + 3` down to `rh - WALL_BUFFER`, stepping 3'.
+Seating area split into 3 sections by aisles centered at 33% and 66% of seating width. Chairs centered within each section per row.
+
+### computeCorner(rw, rh, size)
+Quarter-circle arcs from origin at bottom-left corner (0, rh), angles −90° to 0°. Stage reach = size × 1.1. Two aisles at 33%/66% of arc angle (excluded via angular half-width `2.5 / r`).
+
+### computeHalf(rw, rh, stageR)
+Half-circle arcs from center-top point (rw/2, 0), angles ~0.06 to π−0.06 rad (slight inset from the wall). Same aisle exclusion pattern as corner. Chairs face the stage center point.
+
+### Coordinate System
+Room coordinates are in feet, origin top-left, y increases downward (matches SVG). Transform helpers:
+```
+tx(x, scale) = PAD + x * scale
+ty(y, scale) = PAD + y * scale
+```
+Chair rotation: `(angle * 180/π) + 90` degrees around chair center, where `angle` is the chair's angular position relative to the stage focal point (or −π/2 for straight rows).
+
+---
+
+## Design System
+
+Dark, architectural, blueprint-inspired aesthetic:
+
+| Token | Value | Use |
+|---|---|---|
+| bg deep | `#060910` | page background |
+| bg canvas | `#0a0e15` | SVG background |
+| bg card | `#111923` | control cards, stat bar |
+| border | `#1c2538` | card borders, inactive toggles |
+| room outline | `#2a3550` | floor plan walls |
+| grid lines | `#141b28` | 1-ft grid, row guides |
+| accent gold | `#c9935a` | stage, active states, door marker |
+| chair green | `#4a9e7a` (stroke `#6acd9a`) | chairs, seat count |
+| info blue | `#5a8fc4` | sq ft stat, notes |
+| muted text | `#4e5d73` | labels, footers |
+| secondary text | `#8898aa` | section headers |
+
+Typography: Georgia/serif for the H1 and big stat numbers; system sans-serif for all UI. Labels are 10px uppercase with 1.5px letter-spacing.
+
+---
+
+## Project History / Context
+
+1. Started as a Claude.ai artifact for one specific building walkthrough (Collective Church, 56'11" × 54'4" space, currently an indoor batting cage facility — photos showed metal building, concrete slab, roll-up door, red steel columns, turf to be removed)
+2. First version: center octagon only. Then expanded to 3 layouts, then generalized to accept any room dimensions
+3. Deployed to Vercel via MCP `deploy_to_vercel` into the existing `collective-church` project (creating a new project hit a 403 permission error on this team — deploy into existing projects instead)
+4. Half-circle layout added in v1.1.0
+
+### Known constraints from the actual building (for Collective Church use)
+- Roll-up door on one wall (currently modeled as "Bottom")
+- Red steel structural columns along walls
+- Ceiling peak runs along the long axis (good for center-line lighting/rigging)
+- Weekly reset requirement — church meets in a shared/portable context, so nothing can assume permanent installation
+
+---
+
+## Roadmap Ideas (validated need FIRST — do not build speculatively)
+
+The owner (Greg) has an explicit working rule: **validate before building.** The immediate next step for any of these is a conversation with a real AV integrator (e.g., CCI Solutions, Tumwater WA), not code.
+
+Discussed potential direction: a sales-enablement tool for AV integration companies — something a rep uses ON SITE during a walkthrough, upstream of SketchUp (which serves the design phase, not the sales phase).
+
+Feature candidates, in rough priority order if validated:
+1. **Branded PDF export** — proposal-ready floor plan with company logo, same-day turnaround after a site visit. Likely the highest-value feature.
+2. **Equipment overlay layer** — speaker coverage cones, projector throw distance, screen sightlines, camera positions
+3. **Shareable client links** — read-only URL a client can forward (no login)
+4. **Egress/occupancy checking** — flag IBC assembly-occupancy violations (aisle widths, occupant load)
+5. **Save/load projects** — would need Supabase (Greg's standard stack: Next.js 14 + Supabase + Vercel)
+6. **Obstruction placement** — columns, sound booth, cry room cutouts that seating flows around
+7. **Multiple doors** — currently only one entry indicator
+
+### Engineering notes for whoever picks this up
+- The deployed page.js is dense single-file code. First refactor: split into `lib/seating.js` (pure compute functions — they're already pure and testable), `components/` for the SVG renderers and controls
+- Seating functions are deterministic — snapshot tests would be cheap insurance
+- If adding TypeScript, a parallel TS version already existed in an earlier local build (Next.js scaffold with src dir, TS, Tailwind) — but the deployed JS version is the source of truth
+- Deploy method: Vercel MCP `deploy_to_vercel` with full file tree, `target: production`, project name `collective-church`, teamId `team_LWFY4rTHuGyC6ypVxXD4o7KV`. Or connect a GitHub repo (`MisterGregoryCo` account) for auto-deploys
+- Keep the artifact version (claude.ai) and deployed version in sync manually, or retire the artifact now that the URL exists
+
+---
+
+## Assumptions & Limitations (current)
+
+- Rectangular rooms only
+- One door indicator, cosmetic only (doesn't affect seating math)
+- No obstructions modeled (columns, booths)
+- Chair count is an estimate for planning conversations — not a code-compliant occupancy calculation. Real occupancy loads need IBC/local fire marshal review
+- 5 sq ft/person is a planning heuristic; actual assembly occupancy factors differ (IBC uses 7 net for unconcentrated chairs, 15 net tables/chairs, etc.)
+- Aisle positions are fixed at 33%/66% — not user-adjustable
+- No persistence — refresh resets everything
