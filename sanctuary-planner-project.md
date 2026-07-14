@@ -46,7 +46,7 @@ Everything lives in `page.js`. It's intentionally a single file for easy deploys
 
 ---
 
-## Features (as deployed, v1.2.0)
+## Features (as deployed, v1.3.0)
 
 ### Room Configuration
 - **Width + Depth + Ceiling inputs**: separate feet and inches fields
@@ -56,11 +56,17 @@ Everything lives in `page.js`. It's intentionally a single file for easy deploys
 - **Door/Entry location toggle**: Bottom / Top / Left / Right — renders a gold indicator line on the chosen wall
 - **Live sq ft readout**: total, usable (total minus wall buffer on all sides), and ceiling height
 
-### Four Stage Layouts (tab switcher)
+### Four Stage Layouts (tab switcher) — every layout has an aisle-count toggle as of v1.3.0
 1. **Center Octagon** (⬡) — octagonal stage in room center, curved seating rows radiating outward in sections. Controls: stage size slider (8–24', represents flat-to-flat width), aisle count toggle (4/6/8 radial aisles)
-2. **Front Stage** (▬) — rectangular stage centered against the top wall. Controls: stage width (12' to room width minus 4'), stage depth (6–50'). Three straight seating sections split by two aisles at 33%/66% of seating width. Shows WING labels beside stage when side space > 4'
-3. **Corner Stage** (◣) — triangular wedge in bottom-left corner with dashed curved front edge. Seating in quarter-circle arcs fanning from the corner, two radial aisles at 33%/66% of the arc. Control: stage size (8–24')
-4. **Half Circle** (◖) — semicircular stage, flat edge against top wall, curve facing the room. Seating in concentric half-arcs with two radial aisles. Control: stage radius (5–20', so 10–40' across)
+2. **Front Stage** (▬) — rectangular stage centered against the top wall. Controls: stage width (12' to room width minus 4'), stage depth (6–50'), aisles toggle (1/2/3). Straight seating sections split by evenly-spaced aisles. Shows WING labels beside stage when side space > 4'
+3. **Corner Stage** (◣) — triangular wedge in bottom-left corner with dashed curved front edge. Seating in quarter-circle arcs fanning from the corner. Controls: stage size (8–24'), aisles toggle (1/2/3 radial)
+4. **Half Circle** (◖) — semicircular stage, flat edge against top wall, curve facing the room. Seating in concentric half-arcs. Controls: stage radius (5–20', so 10–40' across), aisles toggle (1/2/3 radial)
+
+### 3D View (v1.3.0)
+- **2D Plan / 3D View toggle** above the floor plan, plus a Rotate slider (0–360°, step 5°) in 3D mode
+- Hand-rolled axonometric SVG projection in the `Iso3D` component — **no 3D libraries**. Orthographic projection (depth foreshortened ×0.5, height ×0.9) with painter's-algorithm depth sorting
+- Renders: floor with 5' grid, translucent back walls + wireframe rim/posts at the entered **ceiling height**, extruded stage (1.5' riser) per layout, chairs as depth-sorted 3D boxes with viewer-facing side faces, gold door indicator on the floor
+- Same compute functions feed both views, so seat counts always match
 
 ### Stats Bar (live-updating)
 - **Seats** — total chairs placed
@@ -70,7 +76,7 @@ Everything lives in `page.js`. It's intentionally a single file for easy deploys
 ### Rendering Details
 - SVG with a subtle grid pattern (1 grid square = 1 foot)
 - Room outline with dimension labels formatted as `56'-11"`
-- Chairs: 6×6px rounded green rects, rotated to face the stage
+- Chairs: rounded green rects at true scale — `CHAIR_WIDTH * scale * 0.85` px (v1.3.0; was fixed 6×6px regardless of room size), rotated to face the stage, 3px floor
 - Stage: gold (#c9935a) with SVG glow filter and gradient fill
 - Row guide circles/arcs drawn faintly behind chairs
 - Dynamic scale: `Math.min(12, (660 - PAD*2) / max(roomWidth, 20))` so any room fits ~660px width
@@ -149,6 +155,7 @@ Typography: Georgia/serif for the H1 and big stat numbers; system sans-serif for
 4. Half-circle layout added in v1.1.0
 5. July 2026: extracted into a standalone project. Source pulled from the collective-church production deployment via the Vercel API, committed to the `sanctuary-planner` GitHub repo (superseding the old TS scaffold there), deployed to its own `sanctuary-planner` Vercel project with GitHub auto-deploy connected. Fixed literal `·` escape sequences that rendered as raw text in the subtitle/footer
 6. v1.2.0 (July 2026): wall buffer and stage gap became adjustable sliders (0–8' / 0.5–8'); added ceiling height input (informational — readout row + floor plan corner label)
+7. v1.3.0 (July 2026): aisle-count toggle on every layout (1/2/3 for front/corner/half — evenly spaced, generalizing the old fixed 33%/66% which was the k=2 case; note the old 0.33/0.66 asymmetry gained ~1 chair/row on front, so front counts shifted slightly); chairs now render at true scale in the 2D plan; added 3D axonometric view with rotation slider (uses ceiling height for wall rendering)
 
 ### Known constraints from the actual building (for Collective Church use)
 - Roll-up door on one wall (currently modeled as "Bottom")
@@ -190,6 +197,7 @@ Feature candidates, in rough priority order if validated:
 - No obstructions modeled (columns, booths)
 - Chair count is an estimate for planning conversations — not a code-compliant occupancy calculation. Real occupancy loads need IBC/local fire marshal review
 - 5 sq ft/person is a planning heuristic; actual assembly occupancy factors differ (IBC uses 7 net for unconcentrated chairs, 15 net tables/chairs, etc.)
-- Ceiling height is informational only — no sightline/rigging/throw math uses it yet
-- Aisle positions are fixed at 33%/66% — not user-adjustable
+- Ceiling height affects only the 3D wall rendering — no sightline/rigging/throw math uses it yet
+- Aisle counts are adjustable per layout, but positions are always evenly spaced — not draggable
+- 3D view is presentational: no orbit/zoom (rotation slider only), chairs sort by center depth so rare overlap artifacts can appear at stage edges
 - No persistence — refresh resets everything
