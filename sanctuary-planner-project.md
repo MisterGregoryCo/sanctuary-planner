@@ -46,7 +46,7 @@ Everything lives in `page.js`. It's intentionally a single file for easy deploys
 
 ---
 
-## Features (as deployed, v1.3.0)
+## Features (as deployed, v1.4.0)
 
 ### Room Configuration
 - **Width + Depth + Ceiling inputs**: separate feet and inches fields
@@ -65,7 +65,8 @@ Everything lives in `page.js`. It's intentionally a single file for easy deploys
 ### 3D View (v1.3.0)
 - **2D Plan / 3D View toggle** above the floor plan, plus a Rotate slider (0–360°, step 5°) in 3D mode
 - Hand-rolled axonometric SVG projection in the `Iso3D` component — **no 3D libraries**. Orthographic projection (depth foreshortened ×0.5, height ×0.9) with painter's-algorithm depth sorting
-- Renders: floor with 5' grid, translucent back walls + wireframe rim/posts at the entered **ceiling height**, extruded stage (1.5' riser) per layout, chairs as depth-sorted 3D boxes with viewer-facing side faces, gold door indicator on the floor
+- Renders: floor with 5' grid, translucent back walls + wireframe rim/posts at the entered **ceiling height**, extruded stage per layout, chairs as depth-sorted 3D boxes with viewer-facing side faces, gold door indicator on the floor
+- **Stage Height slider** (v1.4.0): 0–6', step 0.25', default 1.5' — always visible in the layout controls row; drives the 3D stage extrusion (clamped to ceiling height) and the "N' high" caption on the 3D stage. No effect on the 2D plan or seat counts
 - Same compute functions feed both views, so seat counts always match
 
 ### Stats Bar (live-updating)
@@ -156,6 +157,7 @@ Typography: Georgia/serif for the H1 and big stat numbers; system sans-serif for
 5. July 2026: extracted into a standalone project. Source pulled from the collective-church production deployment via the Vercel API, committed to the `sanctuary-planner` GitHub repo (superseding the old TS scaffold there), deployed to its own `sanctuary-planner` Vercel project with GitHub auto-deploy connected. Fixed literal `·` escape sequences that rendered as raw text in the subtitle/footer
 6. v1.2.0 (July 2026): wall buffer and stage gap became adjustable sliders (0–8' / 0.5–8'); added ceiling height input (informational — readout row + floor plan corner label)
 7. v1.3.0 (July 2026): aisle-count toggle on every layout (1/2/3 for front/corner/half — evenly spaced, generalizing the old fixed 33%/66% which was the k=2 case; note the old 0.33/0.66 asymmetry gained ~1 chair/row on front, so front counts shifted slightly); chairs now render at true scale in the 2D plan; added 3D axonometric view with rotation slider (uses ceiling height for wall rendering)
+8. v1.4.0 (July 2026): stage height slider (0–6') — 3D stage extrudes at true height, replacing the hardcoded 1.5' riser
 
 ### Known constraints from the actual building (for Collective Church use)
 - Roll-up door on one wall (currently modeled as "Bottom")
